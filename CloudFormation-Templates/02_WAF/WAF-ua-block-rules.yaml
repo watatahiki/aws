@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  BlockStringSetUAIE6: 
+    Type: "AWS::WAF::ByteMatchSet"
+    Properties: 
+      Name: "restrict-user-agent-IE6"
+      ByteMatchTuples: 
+        - 
+          FieldToMatch: 
+            Type: "HEADER"
+            Data: "User-Agent"
+          TargetString: "Mozilla/4.0 (compatible; MSIE 6.0;"
+          TextTransformation: "NONE"
+          PositionalConstraint: "CONTAINS"
+  BlockStringRules: 
+    Type: "AWS::WAF::Rule"
+    Properties: 
+      Name: "ua-block-rules"
+      MetricName: "BlockStringRules"
+      Predicates: 
+        - 
+          DataId: 
+            Ref: "BlockStringSetUAIE6"
+          Negated: false
+          Type: "ByteMatch"

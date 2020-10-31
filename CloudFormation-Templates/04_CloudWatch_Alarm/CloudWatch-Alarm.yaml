@@ -1,0 +1,615 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: CloudWatch Alarm
+
+#####################################################################
+# Parameters 設定
+#####################################################################
+Parameters:
+  SystemName:
+    Description: EnvironmentName or ServerName
+    Type: String
+    Default: EnvironmentName  # 環境名やサーバ名を記載
+  Ec2InstanceId:
+    Description: Ec2 InstanceId
+    Type: AWS::EC2::Instance::Id
+  Ec2ImageId:
+    Description: Ec2 ImageId (AMIID)
+    Type: String
+    Default: ami-XXXXXXXXXXXX  # EC2 の ImageId を記載
+  Ec2InstanceType:
+    Description: Ec2 InstanceType
+    Type: String
+    Default: t3.medium  # インスタンスタイプを記載
+  AlbLoadBalancer:
+    Description: AlbLoadBalancer
+    Type: String
+    Default: app/XXXXXX/XXXXXXXXXXX  # ALB の ARN を記載
+  AlbTargetGroup:
+    Description: ALB TargetGroup
+    Type: String
+    Default: targetgroup/XXXXXX/XXXXXXXXXXX  # ターゲットグループの ARN を記載
+  RdsDBInstanceIdentifier:
+    Description: RDS DBInstanceIdentifier
+    Type: String
+    Default: ClusterName  # DB クラスター識別子を記載
+  SNSTopicName:
+    Description: SNS Topic Name
+    Type: String
+    Default: arn:aws:sns:XXXXXXXXXXX  # SNS トピック
+
+#####################################################################
+# Resources 設定
+#####################################################################
+Resources:
+  # CloudWatchアラームの定義
+
+#####################################################################
+# EC2 のアラーム設定
+#####################################################################
+  EC2StatusCheckFailedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} EC2 ステータスチェック
+      MetricName: StatusCheckFailed
+      Namespace: AWS/EC2
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 0  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanThreshold  # 閾値より大きい
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+  EC2CPUCreditBalanceAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} EC2 CPU クレジットバランス
+      MetricName: CPUCreditBalance
+      Namespace: AWS/EC2
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 200  # 閾値
+      TreatMissingData: notBreaching  # Errorsがない場合は良好として扱う
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanOrEqualToThreshold  # 閾値以下
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+  EC2CPUUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} EC2 CPU 使用率
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 2  # 閾値を超えた回数
+      Threshold: 95  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanOrEqualToThreshold  # 閾値以上
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+  EC2MemUsedPercentAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} EC2 メモリ 使用率
+      MetricName: mem_used_percent
+      Namespace: CWAgent
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 95  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanOrEqualToThreshold  # 閾値以上
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+        - Name: ImageId
+          Value: !Ref Ec2ImageId
+        - Name: InstanceType
+          Value: !Ref Ec2InstanceType
+  EC2DiskUsedPercentAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} EC2 DISK 使用率
+      MetricName: disk_used_percent
+      Namespace: CWAgent
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 80  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanOrEqualToThreshold  # 閾値以上
+      Dimensions:
+        - Name: path
+          Value: /  # 環境に合わせて変更
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+        - Name: ImageId
+          Value: !Ref Ec2ImageId
+        - Name: InstanceType
+          Value: !Ref Ec2InstanceType
+        - Name: device
+          Value: nvme0n1p1  # 環境に合わせて変更
+        - Name: fstype
+          Value: xfs  # 環境に合わせて変更
+
+#####################################################################
+# EC2 ミドルウェアプロセスのアラーム設定
+#####################################################################
+  ProcessAmazonCloudwatchAgentAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} amazon-cloudwatch-agent プロセス
+      MetricName: procstat_lookup_pid_count
+      Namespace: CWAgent
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanThreshold  # 閾値未満
+      Dimensions:
+        - Name: exe
+          Value: amazon-cloudwatch-agent
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+        - Name: ImageId
+          Value: !Ref Ec2ImageId
+        - Name: pid_finder
+          Value: native
+        - Name: InstanceType
+          Value: !Ref Ec2InstanceType
+  ProcessAmazonSsmAgentAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} amazon-ssm-agent プロセス
+      MetricName: procstat_lookup_pid_count
+      Namespace: CWAgent
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanThreshold  # 閾値未満
+      Dimensions:
+        - Name: exe
+          Value: amazon-ssm-agent
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+        - Name: ImageId
+          Value: !Ref Ec2ImageId
+        - Name: pid_finder
+          Value: native
+        - Name: InstanceType
+          Value: !Ref Ec2InstanceType
+  ProcessChronydAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} chronyd プロセス
+      MetricName: procstat_lookup_pid_count
+      Namespace: CWAgent
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanThreshold  # 閾値未満
+      Dimensions:
+        - Name: exe
+          Value: chronyd
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+        - Name: ImageId
+          Value: !Ref Ec2ImageId
+        - Name: pid_finder
+          Value: native
+        - Name: InstanceType
+          Value: !Ref Ec2InstanceType
+  ProcessCrondAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} crond プロセス
+      MetricName: procstat_lookup_pid_count
+      Namespace: CWAgent
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanThreshold  # 閾値未満
+      Dimensions:
+        - Name: exe
+          Value: crond
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+        - Name: ImageId
+          Value: !Ref Ec2ImageId
+        - Name: pid_finder
+          Value: native
+        - Name: InstanceType
+          Value: !Ref Ec2InstanceType
+  ProcessHttpdAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} Apache プロセス
+      MetricName: procstat_lookup_pid_count
+      Namespace: CWAgent
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanThreshold  # 閾値未満
+      Dimensions:
+        - Name: exe
+          Value: httpd
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+        - Name: ImageId
+          Value: !Ref Ec2ImageId
+        - Name: pid_finder
+          Value: native
+        - Name: InstanceType
+          Value: !Ref Ec2InstanceType
+  ProcessRsyslogdAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} rsyslogd プロセス
+      MetricName: procstat_lookup_pid_count
+      Namespace: CWAgent
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanThreshold  # 閾値未満
+      Dimensions:
+        - Name: exe
+          Value: rsyslogd
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+        - Name: ImageId
+          Value: !Ref Ec2ImageId
+        - Name: pid_finder
+          Value: native
+        - Name: InstanceType
+          Value: !Ref Ec2InstanceType
+  ProcessSshdAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} sshd プロセス
+      MetricName: procstat_lookup_pid_count
+      Namespace: CWAgent
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanThreshold  # 閾値未満
+      Dimensions:
+        - Name: exe
+          Value: sshd
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+        - Name: ImageId
+          Value: !Ref Ec2ImageId
+        - Name: pid_finder
+          Value: native
+        - Name: InstanceType
+          Value: !Ref Ec2InstanceType
+  ProcessPostfixMasterAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} postfix_master プロセス
+      MetricName: procstat_lookup_pid_count
+      Namespace: CWAgent
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanThreshold  # 閾値未満
+      Dimensions:
+        - Name: exe
+          Value: master
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+        - Name: ImageId
+          Value: !Ref Ec2ImageId
+        - Name: pid_finder
+          Value: native
+        - Name: InstanceType
+          Value: !Ref Ec2InstanceType
+  ProcessSssdAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} sssd プロセス
+      MetricName: procstat_lookup_pid_count
+      Namespace: CWAgent
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanThreshold  # 閾値未満
+      Dimensions:
+        - Name: exe
+          Value: sssd
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+        - Name: ImageId
+          Value: !Ref Ec2ImageId
+        - Name: pid_finder
+          Value: native
+        - Name: InstanceType
+          Value: !Ref Ec2InstanceType
+  ProcessTdAgentAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} td-agent プロセス
+      MetricName: procstat_lookup_pid_count
+      Namespace: CWAgent
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanThreshold  # 閾値未満
+      Dimensions:
+        - Name: exe
+          Value: td-agent
+        - Name: InstanceId
+          Value: !Ref Ec2InstanceId
+        - Name: ImageId
+          Value: !Ref Ec2ImageId
+        - Name: pid_finder
+          Value: native
+        - Name: InstanceType
+          Value: !Ref Ec2InstanceType
+
+#####################################################################
+# ALB のアラーム設定
+#####################################################################
+
+  ALBHealthyHostCountFtAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} ALB 正常ターゲット数
+      MetricName: HealthyHostCount
+      Namespace: AWS/ApplicationELB
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanThreshold  # 閾値未満
+      Dimensions:
+        - Name: TargetGroup
+          Value: !Ref AlbTargetGroup
+        - Name: LoadBalancer
+          Value: !Ref AlbLoadBalancer
+        - Name: AvailabilityZone
+          Value: ap-northeast-1a
+  ALBRejectedConnectionCountFtAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} ALB 接続エラー数 (ALB 最大接続超過)
+      MetricName: RejectedConnectionCount
+      Namespace: AWS/ApplicationELB
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 0  # 閾値
+      TreatMissingData: notBreaching  # Errorsがない場合は良好として扱う
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanThreshold  # 閾値より大きい
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !Ref AlbLoadBalancer
+  ALBTargetConnectionErrorCountFtAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} ALB 接続エラー数 (LB - ターゲット間)
+      MetricName: TargetConnectionErrorCount
+      Namespace: AWS/ApplicationELB
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 0  # 閾値
+      TreatMissingData: notBreaching  # Errorsがない場合は良好として扱う
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanThreshold  # 閾値より大きい
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !Ref AlbLoadBalancer
+  ALBTargetTLSNegotiationErrorCountFtAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} ALB TLS接続エラー数 (LB - ターゲット間)
+      MetricName: TargetTLSNegotiationErrorCount
+      Namespace: AWS/ApplicationELB
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 0  # 閾値
+      TreatMissingData: notBreaching  # Errorsがない場合は良好として扱う
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanThreshold  # 閾値より大きい
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !Ref AlbLoadBalancer
+                              
+#####################################################################
+# RDS (Aurora) のアラーム設定
+#####################################################################
+  RDSCPUCreditBalanceAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} Aurora CPU クレジットバランス
+      MetricName: CPUCreditBalance
+      Namespace: AWS/RDS
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数 データが取れないケースが多かったため 1→3 に変更
+      Threshold: 200  # 閾値
+      TreatMissingData: notBreaching  # Errorsがない場合は良好として扱う
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanOrEqualToThreshold  # 閾値以下
+      Dimensions:
+        - Name: DBClusterIdentifier
+          Value: !Ref RdsDBInstanceIdentifier
+  RDSDatabaseConnectionsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} Aurora DatabaseConnections
+      MetricName: DatabaseConnections
+      Namespace: AWS/RDS
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 100  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanOrEqualToThreshold  # 閾値以上
+      Dimensions:
+        - Name: DBClusterIdentifier
+          Value: !Ref RdsDBInstanceIdentifier
+  RDSDeadlocksAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} Aurora デットロック回数
+      MetricName: Deadlocks
+      Namespace: AWS/RDS
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 0  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanThreshold  # 閾値より大きい
+      Dimensions:
+        - Name: DBClusterIdentifier
+          Value: !Ref RdsDBInstanceIdentifier
+  RDSFreeableMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} Aurora 空きメモリ容量
+      MetricName: FreeableMemory
+      Namespace: AWS/RDS
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 104857600  # 閾値 (100MB)
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanOrEqualToThreshold  # 閾値以下
+      Dimensions:
+        - Name: DBClusterIdentifier
+          Value: !Ref RdsDBInstanceIdentifier
+  RDSCPUUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} Aurora CPU 使用率
+      MetricName: CPUUtilization
+      Namespace: AWS/RDS
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 90  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanOrEqualToThreshold  # 閾値以上
+      Dimensions:
+        - Name: DBClusterIdentifier
+          Value: !Ref RdsDBInstanceIdentifier

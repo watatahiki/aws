@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:  
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: "base ip list"
+      GroupName: base  # セキュリティグループの名前 を記載
+      SecurityGroupIngress: 
+            -
+              IpProtocol: -1  # 全てのプロトコルを許可
+              CidrIp: XXX.XXX.XXX.XXX/32  # 許可したい IP を記載
+              Description: base1
+            -
+              IpProtocol: -1  # 全てのプロトコルを許可
+              CidrIp: XXX.XXX.XXX.XXX/32  # 許可したい IP を記載
+              Description: base2
+      VpcId: vpc-XXXXXXXXXXX  # VPC ID を記載

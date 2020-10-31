@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  DetectXSS: 
+    Type: "AWS::WAFRegional::XssMatchSet"
+    Properties: 
+      Name: "generic-detect-xss"
+      XssMatchTuples: 
+          - FieldToMatch:
+              Type: URI
+            TextTransformation: URL_DECODE
+          - FieldToMatch:
+              Type: URI
+            TextTransformation: HTML_ENTITY_DECODE
+          - FieldToMatch:
+              Type: QUERY_STRING
+            TextTransformation: URL_DECODE
+          - FieldToMatch:
+              Type: QUERY_STRING
+            TextTransformation: HTML_ENTITY_DECODE
+          - FieldToMatch:
+              Type: HEADER
+              Data: cookie
+            TextTransformation: URL_DECODE
+          - FieldToMatch:
+              Type: HEADER
+              Data: cookie
+            TextTransformation: HTML_ENTITY_DECODE
+  XSSRule: 
+    Type: "AWS::WAFRegional::Rule"
+    Properties: 
+      Name: "generic-detect-xss-rules"
+      MetricName: "XSSRule"
+      Predicates: 
+        - 
+          DataId: 
+            Ref: "DetectXSS"
+          Negated: false
+          Type: "XssMatch"
