@@ -131,7 +131,7 @@ Resources:
                       "view": "timeSeries",
                       "stacked": false,
                       "metrics": [
-                          [ "CWAgent", "diskio_writes", "InstanceId", "${Ec2InstanceId}", "ImageId", "${Ec2ImageId}", "name", "nvme0n1", "InstanceType", "${Ec2InstanceType}" ]
+                          [ "CWAgent", "diskio_reads", "InstanceId", "${Ec2InstanceId}", "ImageId", "${Ec2ImageId}", "name", "nvme0n1", "InstanceType", "${Ec2InstanceType}" ]
                       ],
                       "region": "ap-northeast-1",
                       "title": "EC2  ディスク読み取り回数"
