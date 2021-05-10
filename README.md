@@ -2,25 +2,28 @@
 
 - 分析
 	- Athena
-		- ※ 編集中
+		- ALB・CloudFront を含む S3 に格納しているログのテーブル作成・検索が可能
+		- コスト削減のためのパーティション分割は自動化のため Glue にて実施
 	- Kinesis
 		- ※ 編集中
 	- QuickSight
-		- ※ 編集中
+		- ALB・CloudFront の可視化が可能
+		- 他にも S3 に格納されているログであれば可視化が可能
 	- Glue
 		- ※ 編集中
 
 - AWS コスト管理
 	- AWS Cost Explorer
-		- ※ 編集中
+		- Tag でカスタムを行うコスト管理が可能
+		- Organizations を使用していればそこまで必要ないかも
 	- Savings Plans
-		- ※ 編集中
+		- メリット・設定方法は理解
+		- EC2・Fargate に有効
 
 - コンピューティング
 	- EC2
-		- ※ 編集中
-	- EC2 Auto Scaling
-		- ※ 編集中
+		- 各種サーバ (Web・AP・DB など) の構築が可能
+		- インスタンスタイプ (arm など) によるメリット・デメリットも理解
 
 - コンテナ
 	- ECR
@@ -52,7 +55,8 @@
 	- CloudWatch
 		- ※ 編集中
 	- Auto Scaling
-		- ※ 編集中
+		- EC2・RDS のオートスケーリングが可能
+		- EC2 は IAM
 	- Chatbot
 		- ※ 編集中
 	- CloudFormation
@@ -102,9 +106,12 @@
 
 - サーバーレス
 	- Lambda
-		- ※ 編集中
+		- 要望に応じた Lambda 関数の作成が可能
+		- 主に画像リサイズを行う際に使用
+		- EC2 や RDS の自動起動・停止などにも実施
 	- SNS
-		- ※ 編集中
+		- 一般的な SNS トピックの作成が可能
+		- CloudFormation での作成も実施
 	- API Gateway
 		- ※ 編集中
 
@@ -114,6 +121,6 @@
 	- EBS
 		- ※ 編集中
 	- EFS
-		- ※ 編集中
+		- 共有ストレージを必要とする WordPress のシステムに導入
 	- Backup
 		- ※ 編集中
