@@ -131,3 +131,9 @@
 - Backup
 	- 複数のサービスにて導入・運用経験あり
 	- EC2・RDS のバックアップ一元化に使用
+
+## twitter
+https://twitter.com/watatahiki
+
+## エンジニアブログ
+https://engineers.weddingpark.co.jp/author/watahiki/
