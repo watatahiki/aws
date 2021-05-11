@@ -1,78 +1,71 @@
-## AWS サービス一覧（編集中）
+## AWS サービスの経験・できること一覧
 
-- 分析
-	- Athena
-		- ALB・CloudFront を含む S3 に格納しているログのテーブル作成・検索が可能
-		- コスト削減のためのパーティション分割は自動化のため Glue にて実施
-	- Kinesis
-		- ※ 編集中
-	- QuickSight
-		- ALB・CloudFront の可視化が可能
-		- 他にも S3 に格納されているログであれば可視化が可能
-	- Glue
-		- ※ 編集中
+### 分析
+- Athena
+	- ALB・CloudFront・WAF を含む S3 に格納しているログのテーブル作成・検索が可能
+	- パーティション分割は Glue にて自動化
+- Kinesis
+	- Kinesis Data Firehose を使用して WAF ログ を S3 に格納
+- QuickSight
+	- ALB・CloudFront ログの可視化経験あり
+- Glue
+	- Glue クローラを使用して S3 バケットの WAF ログをパーティション分割した経験あり
 
-- AWS コスト管理
-	- AWS Cost Explorer
-		- Tag でカスタムを行うコスト管理が可能
-		- Organizations を使用していればそこまで必要ないかも
-	- Savings Plans
-		- メリット・設定方法は理解
-		- EC2・Fargate に有効
+### AWS コスト管理
+- Savings Plans
+	- 対象・メリット・設定方法などを理解
 
-- コンピューティング
-	- EC2
-		- 各種サーバ (Web・AP・DB など) の構築が可能
-		- インスタンスタイプ (arm など) によるメリット・デメリットも理解
+### コンピューティング
+- EC2
+	- 複数のサービスにて構築・運用経験あり
+	- 各種サーバ (Web・AP・DB など) の構築が可能
+	- インスタンスタイプ (arm など) によるメリット・デメリットも理解
 
-- コンテナ
-	- ECR
-		- ※ 編集中
-	- ECS
-		- ※ 編集中
-	- Fargate
-		- ※ 実施中
+### コンテナ
+- ECR
+	- ECS 運用時に使用
+- ECS
+	- 複数のサービスにて構築・運用経験 (ECS on EC2) あり
+- Fargate
+	- ※ 現在、挑戦中
 
-- データベース
-	- Aurora
-		- ※ 編集中
-	- ElastiCache
-		- ※ 編集中
-	- RDS
-		- ※ 編集中
+### データベース
+- Aurora
+	- 複数のサービスにて構築・運用経験あり
+	- Aurora のバージョンアップなども実施経験あり
+- ElastiCache
+	- 複数のサービスにて構築・運用経験あり
+- RDS
+	- 複数のサービスにて構築・運用経験あり
+	- オンプレミスから RDS への移行も経験
 
-- デベロッパーツール
-	- CodeBuild
-		- ※ 編集中
-	- CodeCommit
-		- ※ 編集中
-	- CodeDeploy
-		- ※ 編集中
-	- CodePipeline
-		- ※ 編集中
+### デベロッパーツール
+- CodeBuild
+	- ソース・ECS のデプロイ時に使用経験あり
+- CodeCommit
+	- ソースのデプロイ時に使用経験あり
+- CodeDeploy
+	- ソース・ECS のデプロイ時に使用経験あり
+- CodePipeline
+	- ソース・ECS のデプロイ時に使用経験あり
 
-- マネジメントとガバナンス
-	- CloudWatch
-		- ※ 編集中
-	- Auto Scaling
-		- EC2・RDS のオートスケーリングが可能
-		- EC2 は IAM
-	- Chatbot
-		- ※ 編集中
-	- CloudFormation
-		- ※ 編集中
-	- CloudTrail
-		- ※ 実施中
-	- Config
-		- ※ 編集中
-	- Organizations
-		- ※ 編集中
-	- Personal Health Dashboard
-		- ※ 実施中
-	- Systems Manager
-		- ※ 編集中
-	- Trusted Advisor
-		- ※ 編集中
+### マネジメントとガバナンス
+- CloudWatch
+	- 複数のサービスでの運用や、監視内製化の構築経験あり
+	- ダッシュボード・アラームの構築は CloudFormation を使用
+- Auto Scaling
+	- EC2・RDS のオートスケーリング設定経験あり
+- Chatbot
+	- GuardDuty の結果や CloudWatch アラームの内容、スロークエリなど様々な情報を Slack へ通知設定
+- CloudFormation
+	- CloudFormation で複数の AWS サービスの構築経験あり
+	- ソースは GitHub に上げている
+- CloudTrail
+	- ※ 現在、挑戦中
+- Organizations
+	- 
+- Personal Health Dashboard
+	- ※ 現在、挑戦中
 
 - ネットワーキングとコンテンツ配信
 	- VPC
