@@ -1,51 +1,84 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: CloudWatch Alarm
+Description: Create CloudWatch Alarm
 
-#####################################################################
-# Parameters 設定
-#####################################################################
+# システムに不要は AWS サービスの項目は削除して使用すること
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "CloudWatch Alarm configuration"
+        Parameters:
+          - SystemName
+          - Ec2InstanceId
+          - Ec2ImageId
+          - Ec2InstanceType
+          - ECSServiceName
+          - ECSClusterName
+          - EFSFileSystemId
+          - AlbLoadBalancer
+          - AlbTargetGroup
+          - RdsDBInstanceIdentifier
+          - SNSTopicName
+          - LambdaFunctionName
+          - ApiGatewayName
 Parameters:
   SystemName:
     Description: EnvironmentName or ServerName
     Type: String
-    Default: EnvironmentName  # 環境名やサーバ名を記載
+    Default: EnvironmentName  # 環境名やサーバ名
   Ec2InstanceId:
     Description: Ec2 InstanceId
     Type: AWS::EC2::Instance::Id
   Ec2ImageId:
     Description: Ec2 ImageId (AMIID)
     Type: String
-    Default: ami-XXXXXXXXXXXX  # EC2 の ImageId を記載
+    Default: ami-XXXXX # EC2 の ImageId
   Ec2InstanceType:
     Description: Ec2 InstanceType
     Type: String
-    Default: XXXXXX  # インスタンスタイプを記載
+    Default: XXXXX # インスタンスタイプ
+  ECSServiceName:
+    Description: ECS ServiceName
+    Type: String
+    Default: XXXXX  # ECS サービス名
+  ECSClusterName:
+    Description: ECS ClusterName
+    Type: String
+    Default: XXXXX  # ECS クラスター名
+  EFSFileSystemId:
+    Description: EFS FileSystemId
+    Type: String
+    Default: XXXXX  # EFS ID
   AlbLoadBalancer:
     Description: AlbLoadBalancer
     Type: String
-    Default: app/XXXXXX/XXXXXXXXXXX  # ALB の ARN を記載
+    Default: app/XXXXX/XXXXX  # ALB の ARN
   AlbTargetGroup:
     Description: ALB TargetGroup
     Type: String
-    Default: targetgroup/XXXXXX/XXXXXXXXXXX  # ターゲットグループの ARN を記載
+    Default: targetgroup/XXXXX/XXXXX  # ターゲットグループの ARN
   RdsDBInstanceIdentifier:
     Description: RDS DBInstanceIdentifier
     Type: String
-    Default: XXXXXX  # DB クラスター識別子を記載
+    Default: XXXXX  # DB クラスター識別子
   SNSTopicName:
     Description: SNS Topic Name
     Type: String
-    Default: arn:aws:sns:XXXXXXXXXXX  # SNS トピック
+    Default: arn:aws:sns:XXXXX  # SNS トピック
+  LambdaFunctionName:
+    Description: Lambda Function Name
+    Type: String
+    Default: XXXXX  # Lambda 関数名
+  ApiGatewayName:
+    Description: APIGateway Name
+    Type: String
+    Default: XXXXX  # APIGateway
 
-#####################################################################
-# Resources 設定
-#####################################################################
 Resources:
-  # CloudWatchアラームの定義
-
-#####################################################################
-# EC2 のアラーム設定
-#####################################################################
+# ------------------------------------------------------------#
+#  CloudWatch Alarm
+# ------------------------------------------------------------#
+# EC2 alarm
   EC2StatusCheckFailedAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -156,9 +189,110 @@ Resources:
         - Name: fstype
           Value: xfs  # 環境に合わせて変更
 
-#####################################################################
-# EC2 ミドルウェアプロセスのアラーム設定
-#####################################################################
+# ECS alarm
+  ECSDesiredTaskCountAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} ECS タスク数
+      MetricName: DesiredTaskCount
+      Namespace: ECS/ContainerInsights
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 4  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanThreshold  # 閾値未満
+      Dimensions:
+        - Name: ServiceName
+          Value: !Ref ECSServiceName
+        - Name: ClusterName
+          Value: !Ref ECSClusterName
+  ECSRunningTaskCountAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} ECS RUNNING 状態にあるタスク数
+      MetricName: RunningTaskCount
+      Namespace: ECS/ContainerInsights
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 4  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanThreshold  # 閾値未満
+      Dimensions:
+        - Name: ServiceName
+          Value: !Ref ECSServiceName
+        - Name: ClusterName
+          Value: !Ref ECSClusterName
+
+# EFS alarm
+  EFSClientConnectionsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} EFS 接続数
+      MetricName: ClientConnections
+      Namespace: AWS/EFS
+      Statistic: Sum  # 合計
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 2  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanThreshold  # 閾値未満
+      Dimensions:
+        - Name: FileSystemId
+          Value: !Ref EFSFileSystemId
+  EFSBurstCreditBalanceAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} EFS 利用可能なバーストクレジット数
+      MetricName: BurstCreditBalance
+      Namespace: AWS/EFS
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 104857600  # 閾値 (100MB)
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: LessThanOrEqualToThreshold  # 閾値以下
+      Dimensions:
+        - Name: FileSystemId
+          Value: !Ref EFSFileSystemId
+  EC2PercentIOLimitAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} EFS I/O制限に達するまでの割合
+      MetricName: PercentIOLimit
+      Namespace: AWS/EFS
+      Statistic: Average  # 平均
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 80  # 閾値
+      TreatMissingData: breaching  # 欠落データポイントは不良と扱われる
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanOrEqualToThreshold  # 閾値以上
+      Dimensions:
+        - Name: FileSystemId
+          Value: !Ref EFSFileSystemId
+
+# EC2 middleware process alarm
   ProcessAmazonCloudwatchAgentAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -430,11 +564,8 @@ Resources:
         - Name: InstanceType
           Value: !Ref Ec2InstanceType
 
-#####################################################################
-# ALB のアラーム設定
-#####################################################################
-
-  ALBHealthyHostCountFtAlarm:
+# ALB alarm
+  ALBHealthyHostCountAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmActions:
@@ -457,7 +588,7 @@ Resources:
           Value: !Ref AlbLoadBalancer
         - Name: AvailabilityZone
           Value: ap-northeast-1a
-  ALBRejectedConnectionCountFtAlarm:
+  ALBRejectedConnectionCountAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmActions:
@@ -476,7 +607,7 @@ Resources:
       Dimensions:
         - Name: LoadBalancer
           Value: !Ref AlbLoadBalancer
-  ALBTargetConnectionErrorCountFtAlarm:
+  ALBTargetConnectionErrorCountAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmActions:
@@ -495,7 +626,7 @@ Resources:
       Dimensions:
         - Name: LoadBalancer
           Value: !Ref AlbLoadBalancer
-  ALBTargetTLSNegotiationErrorCountFtAlarm:
+  ALBTargetTLSNegotiationErrorCountAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmActions:
@@ -515,9 +646,7 @@ Resources:
         - Name: LoadBalancer
           Value: !Ref AlbLoadBalancer
 
-#####################################################################
-# RDS (Aurora) のアラーム設定
-#####################################################################
+# RDS (Aurora) alarm
   RDSCPUCreditBalanceAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -614,3 +743,120 @@ Resources:
         - Name: DBClusterIdentifier
           Value: !Ref RdsDBInstanceIdentifier
 
+# Lambda alarm
+  LambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} Lambda Errors
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: notBreaching  # Errorsがない場合は良好として扱う
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanThreshold  # 閾値より大きい
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaFunctionName
+  LambdaThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} Lambda Throttles
+      MetricName: Throttles
+      Namespace: AWS/Lambda
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: notBreaching  # Errorsがない場合は良好として扱う
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanThreshold  # 閾値より大きい
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaFunctionName
+  LambdaDeadLetterErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} Lambda  DeadLetterErrors
+      MetricName: DeadLetterErrors
+      Namespace: AWS/Lambda
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: notBreaching  # Errorsがない場合は良好として扱う
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanThreshold  # 閾値より大きい
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaFunctionName
+  LambdaDestinationDeliveryFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} Lambda DestinationDeliveryFailures
+      MetricName: DestinationDeliveryFailures
+      Namespace: AWS/Lambda
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: notBreaching  # Errorsがない場合は良好として扱う
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanThreshold  # 閾値より大きい
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaFunctionName
+
+# APIGateWay alarm
+  ApiGateway5XXErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} ApiGateway 5XXError
+      MetricName: 5XXError
+      Namespace: AWS/ApiGateway
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: notBreaching  # Errorsがない場合は良好として扱う
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanThreshold  # 閾値より大きい
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ApiGatewayName
+  ApiGateway4XXErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmActions:
+        - !Ref SNSTopicName  # アラーム遷移時のアクション
+      AlarmName: !Sub ${SystemName} ApiGateway  4XXError
+      MetricName: 4XXError
+      Namespace: AWS/ApiGateway
+      Statistic: Maximum  # 最大
+      Period: 60  # 期間[s]
+      EvaluationPeriods: 1  # 閾値を超えた回数
+      Threshold: 1  # 閾値
+      TreatMissingData: notBreaching  # Errorsがない場合は良好として扱う
+      OKActions:
+        - !Ref SNSTopicName  # OK遷移時のアクション
+      ComparisonOperator: GreaterThanThreshold  # 閾値より大きい
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ApiGatewayName

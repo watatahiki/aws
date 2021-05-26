@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+# ------------------------------------------------------------#
+#  SecurityGroup
+# ------------------------------------------------------------#
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "base ip list"
+      GroupName: base # セキュリティグループの名前
+      SecurityGroupIngress:
+            -
+              IpProtocol: -1  # 全てのプロトコルを許可
+              CidrIp: XXX.XXX.XXX.XXX/32  # 許可したい IP
+              Description: base1
+            -
+              IpProtocol: -1  # 全てのプロトコルを許可
+              CidrIp: XXX.XXX.XXX.XXX/32  # 許可したい IP
+              Description: base2
+      VpcId: vpc-XXXXX  # VPC ID
+
+# VPC を CFN で作成していたら以下のように ImportValue でクロススタック参照を行うと汎用的になる
+#      VpcId:
+#        Fn::ImportValue:
+#          !Sub ${PJPrefix}-vpcid

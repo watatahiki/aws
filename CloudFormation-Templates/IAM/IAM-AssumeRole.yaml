@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create IAM Users and AssumeRole
+
+Parameters:
+  StageName:
+    Type: String
+    Description: StageName
+    AllowedValues:
+      - prd
+      - stg
+      - dev
+
+Resources:
+# ------------------------------------------------------------#
+#  IAM
+# ------------------------------------------------------------#
+# AssumeRole を付与するIAMユーザの作成
+  DeployUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub DeployUser-${StageName}
+# IAMユーザに付与するAssumeRoleのみのIAMポリシー
+  DeployUserPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub DeployUserAssumerole-${StageName}
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: "sts:AssumeRole"
+            Resource: !GetAtt DeployRole.Arn
+      Users:
+        - !Ref DeployUser
+
+# IAMユーザがAssumeRoleするIAMロール
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub DeployRole-${StageName}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+# 信頼されたエンティティ に画像リサイズ用のIAMユーザを設定
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt DeployUser.Arn
+            Action: sts:AssumeRole
+# Role にポリシーを付与
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AWSCloudFormationFullAccess' # 必要な権限を追加していく
+
+# ------------------------------------------------------------#
+# Output Parameters
+# ------------------------------------------------------------#
+Outputs:
+  DeployUserArn:
+    Value: !GetAtt DeployUser.Arn
+  DeployRoleArn:
+    Value: !GetAtt DeployRole.Arn

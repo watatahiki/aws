@@ -1,10 +1,16 @@
 AWSTemplateFormatVersion: "2010-09-09"
+
 Resources:
-  SqlInjDetection: 
+# ------------------------------------------------------------#
+#  WAF v1
+# ------------------------------------------------------------#
+  SqlInjDetection:
     Type: "AWS::WAF::SqlInjectionMatchSet"
-    Properties: 
+# グローバルでなくリージョンで使用したい場合は以下
+#    Type: "AWS::WAFRegional::SqlInjectionMatchSet"
+    Properties:
       Name: "generic-detect-sqli"
-      SqlInjectionMatchTuples: 
+      SqlInjectionMatchTuples:
           - FieldToMatch:
               Type: URI
             TextTransformation: URL_DECODE
@@ -25,14 +31,14 @@ Resources:
               Type: HEADER
               Data: cookie
             TextTransformation: HTML_ENTITY_DECODE
-  SqlInjRule: 
+  SqlInjRule:
     Type: "AWS::WAF::Rule"
-    Properties: 
+    Properties:
       Name: "generic-detect-sqli-rules"
       MetricName: "SqlInjRule"
-      Predicates: 
-        - 
-          DataId: 
+      Predicates:
+        -
+          DataId:
             Ref: "SqlInjDetection"
           Negated: false
           Type: "SqlInjectionMatch"

@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: GuardDuty to Slack
+
+# Slack のワークスペースIDとSlackチャンネルIDを事前に作成しておく
+Parameters:
+  TargetWorkspaceId:
+    Type: String
+    Default: XXXXX   # Slack ワークスペースID
+
+  TargetChannelId:
+    Type: String
+    AllowedValues:
+      - XXXXX   # Slack チャンネルID
+
+Resources:
+# ------------------------------------------------------------#
+#  CloudWatch Alarm
+# ------------------------------------------------------------#
+# GuardDuty用のSNSトピックの作成
+  GuardDutyForChatbotTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: GuardDuty-for-Chatbot-topic
+      Subscription:
+        - Endpoint: XXXXX   # メールアドレス
+          Protocol: email
+# GuardDuty用のChatbotの作成
+  ChatbotForGuardDuty:
+    Type: AWS::Chatbot::SlackChannelConfiguration
+    Properties:
+      ConfigurationName: GuardDutyAlertChannel
+      IamRoleArn: !GetAtt ChatbotIamRole.Arn
+      LoggingLevel: INFO
+      SlackChannelId: !Ref TargetChannelId
+      SlackWorkspaceId: !Ref TargetWorkspaceId
+      SnsTopicArns:
+        - !Ref GuardDutyForChatbotTopic
+  ChatbotIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: chatbot.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: chatbot-iam-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudwatch:Describe*
+                  - cloudwatch:Get*
+                  - cloudwatch:List*
+                Resource:
+                  - "*"

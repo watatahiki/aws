@@ -1,24 +1,30 @@
 AWSTemplateFormatVersion: "2010-09-09"
+
 Resources:
-  MyIPSetBlacklist: 
+# ------------------------------------------------------------#
+#  WAF v1
+# ------------------------------------------------------------#
+  MyIPSetBlacklist:
     Type: "AWS::WAF::IPSet"
-    Properties: 
+# グローバルでなくリージョンで使用したい場合は以下
+#    Type: "AWS::WAFRegional::IPSet
+    Properties:
       Name: "ip-block-list"
-      IPSetDescriptors: 
-        - 
+      IPSetDescriptors:
+        -
           Type: "IPV4"
           Value: "XXX.XXX.XXX.XXX/32"  # 拒否したい IP を記載
-        - 
+        -
           Type: "IPV4"
           Value: "XXX.XXX.XXX.XXX/32"  # 拒否したい IP を記載
-  MyIPSetRule: 
+  MyIPSetRule:
     Type: "AWS::WAF::Rule"
-    Properties: 
+    Properties:
       Name: "ip-block-rules"
       MetricName: "MyIPSetRule"
-      Predicates: 
-        - 
-          DataId: 
+      Predicates:
+        -
+          DataId:
             Ref: "MyIPSetBlacklist"
           Negated: false
           Type: "IPMatch"

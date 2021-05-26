@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+# ------------------------------------------------------------#
+# 使い方 :
+#   ALB に付与
+#   Outputs は SG-security-alb にて使用
+# ------------------------------------------------------------#
+
+Resources:
+# ------------------------------------------------------------#
+#  SecurityGroup
+# ------------------------------------------------------------#
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "http,https public"
+      GroupName: http-https-public  # セキュリティグループの名前 を記載
+      SecurityGroupIngress:
+            -
+              IpProtocol: tcp
+              FromPort : 80
+              ToPort : 80
+              CidrIp: 0.0.0.0/0
+            -
+              IpProtocol: tcp
+              FromPort : 443
+              ToPort : 443
+              CidrIp: 0.0.0.0/0
+      VpcId: vpc-XXXXX  # VPC ID を記載
+
+# VPC を CFN で作成していたら以下のように ImportValue でクロススタック参照を行うと汎用的になる
+#      VpcId:
+#        Fn::ImportValue:
+#          !Sub ${PJPrefix}-vpcid
+
+# "SG-security-alb" にて使用
+# Outputs:
+#   SgGroupId:
+#     Value: !Ref SecurityGroup
+#     Export:
+#       Name: !Sub "${PJPrefix}-SG-security-alb-https-public"

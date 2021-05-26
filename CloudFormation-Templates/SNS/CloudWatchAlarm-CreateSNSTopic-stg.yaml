@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create SNS topic for CloudWatch Alarm
+
+Resources:
+# ------------------------------------------------------------#
+#  SNS
+# ------------------------------------------------------------#
+# SNSトピック作成
+  CloudWatchAlarmForChatbotTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: CloudWatchAlarm-for-Chatbot-topic
+      Subscription:
+        - Endpoint: XXXXX   # メールアドレス
+          Protocol: email
+
+# ------------------------------------------------------------#
+# Output Parameters
+# ------------------------------------------------------------#
+# クロススタックを行いたい場合は Output を衣装
+# Outputs:
+#   CloudWatchAlarmForChatbotTopicArn:
+#     Value: !Ref CloudWatchAlarmForChatbotTopic
+#     Export:
+#       Name: !Sub ${AWS::StackName}-CloudWatchAlarmForChatbotTopicArn

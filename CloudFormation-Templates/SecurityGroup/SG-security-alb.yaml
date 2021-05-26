@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+# ------------------------------------------------------------#
+# 使い方 :
+#   EC2 に付与することで ALB からのアクセスだけを許可する SecurityGroup
+#   ALB には SG-security-alb-https-public を付与する
+# ------------------------------------------------------------#
+
+Resources:
+# ------------------------------------------------------------#
+#  SecurityGroup
+# ------------------------------------------------------------#
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "permit only http,https from alb"
+      GroupName: security-alb
+      SecurityGroupIngress:
+            -
+              IpProtocol: tcp
+              FromPort : 80
+              ToPort : 80
+              SourceSecurityGroupId: XXXXX   # ALB に付与しているセキュリティグループを記載
+#                Fn::ImportValue:
+#                  !Sub "${PJPrefix}-"
+              Description: alb only
+            -
+              IpProtocol: tcp
+              FromPort : 443
+              ToPort : 443
+              SourceSecurityGroupId: XXXXX   # ALB に付与しているセキュリティグループを記載
+#                Fn::ImportValue:
+#                  !Sub "${PJPrefix}-SG-security-alb-https-public"
+              Description: alb only
+      VpcId: XXXXX   # VPC ID を記載
+
+# VPC を CFN で作成していたら以下のように ImportValue でクロススタック参照を行うと汎用的になる
+#      VpcId:
+#        Fn::ImportValue:
+#          !Sub ${PJPrefix}-vpcid

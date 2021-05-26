@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+# ------------------------------------------------------------#
+#  SecurityGroup
+# ------------------------------------------------------------#
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "for efs connection"
+      GroupName: security-efs
+      SecurityGroupIngress:
+            -
+              IpProtocol: tcp
+              FromPort : 2049
+              ToPort : 2049
+              SourceSecurityGroupId: XXXXX   # EC2に付与しているセキュリティグループのID
+              Description: security-efs
+      VpcId: XXXXX   # VPC ID を記載
+
+# VPC を CFN で作成していたら以下のように ImportValue でクロススタック参照を行うと汎用的になる
+#      VpcId:
+#        Fn::ImportValue:
+#          !Sub ${PJPrefix}-vpcid

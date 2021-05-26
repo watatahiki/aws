@@ -1,9 +1,22 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Description: CloudWatch Dashboard
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create CloudWatch Dashboard
 
-#####################################################################
-# Parameters 設定
-#####################################################################
+# システムに不要は AWS サービスの項目は削除して使用すること
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "CloudWatch Dashboard configuration"
+        Parameters:
+          - Ec2InstanceId
+          - Ec2ImageId
+          - Ec2InstanceType
+          - ECSServiceName
+          - ECSClusterName
+          - EFSFileSystemId
+          - AlbLoadBalancer
+          - AlbTargetGroup
+          - RdsDBInstanceIdentifier
 Parameters:
   Ec2InstanceId:
     Description: Ec2 InstanceId
@@ -11,38 +24,46 @@ Parameters:
   Ec2ImageId:
     Description: Ec2 ImageId (AMIID)
     Type: String
-    Default: ami-XXXXXXXXXXXX  # EC2 の ImageId を記載
+    Default: ami-XXXXX  # EC2 の ImageId
   Ec2InstanceType:
     Description: Ec2 InstanceType
     Type: String
-    Default: XXXXXX  # インスタンスタイプを記載
+    Default: XXXXX  # インスタンスタイプ
+  ECSServiceName:
+    Description: ECS ServiceName
+    Type: String
+    Default: XXXXX # ECS サービス名
+  ECSClusterName:
+    Description: ECS ClusterName
+    Type: String
+    Default: XXXXX # ECS クラスター名
+  EFSFileSystemId:
+    Description: EFS FileSystemId
+    Type: String
+    Default: XXXXX # EFS ID
   AlbLoadBalancer:
     Description: AlbLoadBalancer
     Type: String
-    Default: app/XXXXXX/XXXXXXXXXXX  # ALB の ARN を記載
+    Default: app/XXXXX/XXXXX  # ALB の ARN
   AlbTargetGroup:
     Description: ALB TargetGroup
     Type: String
-    Default: targetgroup/XXXXXX/XXXXXXXXXXX  # ターゲットグループの ARN を記載
+    Default: targetgroup/XXXXX/XXXXX  # ターゲットグループ ARN
   RdsDBInstanceIdentifier:
     Description: RDS DBInstanceIdentifier
     Type: String
-    Default: XXXXXX  # DB クラスター識別子を記載
+    Default: XXXXX  # DB クラスター識別子
 
-#####################################################################
-# Resources 設定
-#####################################################################
 Resources:
-  # CloudWatchダッシュボードの定義
-
-#####################################################################
-# ダッシュボード設定
-#####################################################################
+# ------------------------------------------------------------#
+#  CloudWatch Dashboard
+# ------------------------------------------------------------#
   CWDashboard:
     Type: AWS::CloudWatch::Dashboard
     Properties:
       DashboardName: !Sub '${AWS::StackName}'
       DashboardBody: !Sub |
+# EC2 metrics
         {
           "widgets": [
               {
@@ -210,6 +231,89 @@ Resources:
                       "title": "EC2  ステータスチェック失敗"
                   }
               },
+# ECS metrics
+              {
+                  "type": "metric",
+                  "x": 0,
+                  "y": 114,
+                  "width": 12,
+                  "height": 6,
+                  "properties": {
+                      "view": "timeSeries",
+                      "stacked": false,
+                      "metrics": [
+                          [ "ECS/ContainerInsights", "DesiredTaskCount", "ServiceName", "${ECSServiceName}", "ClusterName", "${ECSClusterName}" ]
+                      ],
+                      "region": "ap-northeast-1",
+                      "title": "ECS タスク数"
+                  }
+              },
+              {
+                  "type": "metric",
+                  "x": 12,
+                  "y": 114,
+                  "width": 12,
+                  "height": 6,
+                  "properties": {
+                      "view": "timeSeries",
+                      "stacked": false,
+                      "metrics": [
+                          [ "ECS/ContainerInsights", "RunningTaskCount", "ServiceName", "${ECSServiceName}", "ClusterName", "${ECSClusterName}" ]
+                      ],
+                      "region": "ap-northeast-1",
+                      "title": "ECS RUNNING 状態にあるタスク数"
+                  }
+              },
+# EFS metrics
+              {
+                  "type": "metric",
+                  "x": 0,
+                  "y": 102,
+                  "width": 12,
+                  "height": 6,
+                  "properties": {
+                      "view": "timeSeries",
+                      "stacked": false,
+                      "metrics": [
+                          [ "AWS/EFS", "ClientConnections", "FileSystemId", "${EFSFileSystemId}" ]
+                      ],
+                      "region": "ap-northeast-1",
+                      "title": "EFS  クライアント接続数"
+                  }
+              },
+              {
+                  "type": "metric",
+                  "x": 0,
+                  "y": 108,
+                  "width": 24,
+                  "height": 6,
+                  "properties": {
+                      "view": "timeSeries",
+                      "stacked": false,
+                      "metrics": [
+                          [ "AWS/EFS", "BurstCreditBalance", "FileSystemId", "${EFSFileSystemId}" ]
+                      ],
+                      "region": "ap-northeast-1",
+                      "title": "EFS  利用可能なバーストクレジット数"
+                  }
+              },
+              {
+                  "type": "metric",
+                  "x": 12,
+                  "y": 102,
+                  "width": 12,
+                  "height": 6,
+                  "properties": {
+                      "view": "timeSeries",
+                      "stacked": false,
+                      "metrics": [
+                          [ "AWS/EFS", "PercentIOLimit", "FileSystemId", "${EFSFileSystemId}" ]
+                      ],
+                      "region": "ap-northeast-1",
+                      "title": "EFS  I/O制限に達するまでの割合"
+                  }
+              },
+# ALB metrics
               {
                   "type": "metric",
                   "x": 0,
@@ -369,7 +473,7 @@ Resources:
                       "region": "ap-northeast-1",
                       "title": "ALB TLS接続エラー数 (LB - ターゲット間)"
                   }
-              },              
+              },
               {
                   "type": "metric",
                   "x": 0,
@@ -418,6 +522,7 @@ Resources:
                       "title": "ALB  ELB 5XX (カウント)"
                   }
               },
+# Aurora metrics
               {
                   "type": "metric",
                   "x": 0,
